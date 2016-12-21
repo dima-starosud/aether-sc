@@ -6,7 +6,7 @@ import java.io.Closeable
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing._
 
-import scala.util.Random
+import aether.CubeXY
 
 object Draw {
   type Draw = (Dimension, Graphics2D) => Unit
@@ -48,9 +48,7 @@ object Draw {
   // TODO remove this some time
   def main(args: Array[String]): Unit = {
     val closeable = new AtomicReference[Closeable]()
-    SwingUtilities.invokeLater { () =>
-      closeable.set(animate()((d, g) => g.drawLine(0, 0, Random.nextInt(d.width), Random.nextInt(d.height))))
-    }
+    SwingUtilities.invokeLater(() => closeable.set(animate()(CubeXY.draw)))
     Thread.sleep(10000)
     closeable.get().close()
   }
