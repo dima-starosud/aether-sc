@@ -12,7 +12,7 @@ object Draw {
     animator.setPreferredSize(new Dimension(640, 480))
 
     val frame = new JFrame("Animation")
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+    frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
     frame.getContentPane.add(animator)
     frame.pack()
     frame.setVisible(true)
