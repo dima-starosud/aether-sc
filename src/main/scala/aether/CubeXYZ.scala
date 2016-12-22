@@ -1,77 +1,91 @@
 package aether
 
-import ungeneric.Constrained
-
 object CubeXYZ {
 
   final case class Direction(dx: Double, dy: Double, dz: Double)
 
-  sealed trait Shape
+  final case class Point(x: Double, y: Double, z: Double)
 
-  sealed trait D0 extends Shape
+  trait StraightLineLike
 
-  final case class Point(x: Double, y: Double, z: Double) extends D0 {
-    def +(d: Direction) = {
-      import d._
-      Point(x + dx, y + dy, z + dz)
-    }
-  }
+  final case class Ray(p1: Point, d: Direction) extends StraightLineLike
 
-  sealed trait D1 extends Shape {
-    def p1: Point
+  final case class Segment(p1: Point, p2: Point) extends StraightLineLike
 
-    def p2: Point
+  final case class Wall(p1: CubeXY.Point, p2: CubeXY.Point)
 
-    require(p1 != p2, s"$p1 != $p2")
-  }
+  final case class Cuboid(p1: Point, p7: Point)
 
-  final case class Segment(p1: Point, p2: Point) extends D1
-
-  final case class Ray(p1: Point, d: Direction) extends D1 {
-    override def p2: Point = p1 + d
-  }
-
-  final case class Line(p1: Point, p2: Point) extends D1
-
-  sealed trait D2 extends Shape
-
-  val Vertical = Constrained[D1 => ?, D1] { d1 =>
-    import d1._
-    require(p1.z == p2.z, s"$p1.z == $p2.z")
-    d1
-  }
-
-  final case class Wall(center: Vertical.Value, radius: Double) extends D2
-
-  sealed trait D3 extends Shape
-
-  final case class Cuboid(p1: Point, p7: Point) extends D3
-
-  final case class Cylinder(center: D1, radius: Double) extends D3
+  final case class Cylinder(center: StraightLineLike, radius: Double)
 
   final case class Hierarchy(priority: Int, origin: Option[Int], causes: Set[Int], effects: Set[Int])
 
-  final case class World(border: Cuboid, walls: Map[Int, Wall], cylinders: Map[Int, (Cylinder, Hierarchy)])
+  val DummyHierarchy = Hierarchy(-1, Option.empty, Set.empty, Set.empty)
 
-  def intersection(head: Wall, cylinder: Cylinder): Option[Point] = ???
+  final case class World(border: Cuboid, walls: Set[Wall], cylinders: Map[Int, (Cylinder, Hierarchy)])
 
-  def intersection(cylinder1: Cylinder, cylinder2: Cylinder): Option[(Point, Point)] = ???
+  final case class XYPlane(z: Double)
+
+  def intersection(wall: Wall, cylinder: Cylinder): Option[Point] = /* TODO Some(thing) */ None
+
+  def intersection(cylinder1: Cylinder, cylinder2: Cylinder): Option[(Point, Point)] = /* TODO Some(thing) */ None
 
   def inject(world: World, cylinder: Cylinder): World = {
-    val p1 = intersection(world.walls.values.head, cylinder)
-    val p2 = intersection(cylinder, cylinder)
-    ???
+    val wallIntersection = world.walls.flatMap(intersection(_, cylinder))
+    val cylinderIntersection = world.cylinders
+      .mapValues(p => intersection(p._1, cylinder).map(ps => (p._2, ps._1, ps._2)))
+      .collect {
+        case (k, Some(v)) => k -> v
+      }
+
+    require(wallIntersection.isEmpty && cylinderIntersection.isEmpty,
+      s"$wallIntersection.isEmpty && $cylinderIntersection.isEmpty; otherwise is not implemented yet")
+
+    val id = 1 + (world.cylinders.keySet + 0).max
+
+    world.copy(cylinders = world.cylinders.updated(id, (cylinder, DummyHierarchy)))
   }
 
-  def sliceZ(world: World, value: Double): CubeXY.World = {
-    ???
+  def intersection(wall: Wall, plane: XYPlane): CubeXY.Segment = {
+    CubeXY.Segment(wall.p1, wall.p2)
   }
 
-  def limitZ(world: World, min: Double, max: Double): World = {
-    ???
+  def intersection(cylinder: Cylinder, plane: XYPlane): Option[CubeXY.Ellipse] = {
+    val (intersect, p1, direction) = cylinder.center match {
+      case Ray(p1, d) =>
+        ((plane.z - p1.z) * d.dz >= 0,
+          p1,
+          d)
+      case Segment(p1, p2) =>
+        ((plane.z - p1.z) * (plane.z - p2.z) <= 0,
+          p1,
+          Direction(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z))
+    }
+    if (!intersect) {
+      None
+    } else {
+      val rz = (plane.z - p1.z) / direction.dz
+      val x = rz * direction.dx + p1.x
+      val y = rz * direction.dy + p1.y
+      import cylinder.{radius => r}
+      Some(CubeXY.Ellipse(
+        /* TODO this is circle, and we need ellipse */
+        CubeXY.Point(x - r, y - r), CubeXY.Point(x + r, y + r)))
+    }
   }
 
-  def shiftZ(world: World, value: Double): World = {
-    ???
+  def intersection(world: World, plane: XYPlane): CubeXY.World = {
+    val position = {
+      import world.border._
+      CubeXY.Rectangle(CubeXY.Point(p1.x, p1.y), CubeXY.Point(p7.x, p7.y))
+    }
+
+    val shapes = {
+      val segments = world.walls.map(intersection(_, plane))
+      val ellipses = world.cylinders.values.flatMap(p => intersection(p._1, plane))
+      segments.toSeq ++ ellipses.toSeq
+    }
+
+    CubeXY.World(position, shapes.toSet)
   }
 }
