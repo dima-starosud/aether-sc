@@ -4,7 +4,7 @@ import java.io.Closeable
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 import javax.swing.SwingUtilities
 
-import aether.CubeXY.{Point => Point2D, World => World2D, draw => draw2D}
+import aether.CubeXY.{Point2D => Point2D, World2D => World2D, draw => draw2D}
 import aether.CubeXYZ.{Point => Point3D, World => World3D, _}
 
 object DrawExample {
