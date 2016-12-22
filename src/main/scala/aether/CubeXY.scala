@@ -25,13 +25,14 @@ object CubeXY {
 
   final case class Segment(p1: Point, p2: Point) extends Shape with RectangleLike
 
-  final case class Ellipse(p1: Point, p2: Point) extends Shape with RectangleLike
+  final case class Ellipse(c: Point, hr: Double, vr: Double, angle: Double) extends Shape
 
   final case class World(position: Rectangle, shapes: Set[Shape])
 
   val asAwt: Shape => AwtShape = {
-    case e@Ellipse(_, _) =>
-      new Ellipse2D.Double(e.llCorner.x, e.llCorner.y, e.width, e.height)
+    case e: Ellipse =>
+      AffineTransform.getRotateInstance(e.angle, e.c.x, e.c.y).createTransformedShape(
+        new Ellipse2D.Double(e.c.x - e.hr, e.c.y - e.vr, 2 * e.hr, 2 * e.vr))
     case Segment(p1, p2) =>
       new Line2D.Double(p1.x, p1.y, p2.x, p2.y)
   }

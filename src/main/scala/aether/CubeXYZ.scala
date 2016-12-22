@@ -67,10 +67,15 @@ object CubeXYZ {
       val rz = (plane.z - p1.z) / direction.dz
       val x = rz * direction.dx + p1.x
       val y = rz * direction.dy + p1.y
-      import cylinder.{radius => r}
+
+      val t = {
+        import direction._
+        val dn = math.sqrt(Seq(dx, dy, dz).map(math.pow(_, 2)).sum)
+        math.asin(dz.abs / dn)
+      }
+
       Some(CubeXY.Ellipse(
-        /* TODO this is circle, and we need ellipse */
-        CubeXY.Point(x - r, y - r), CubeXY.Point(x + r, y + r)))
+        CubeXY.Point(x, y), cylinder.radius / math.cos(t), cylinder.radius, math.atan2(direction.dy, direction.dx)))
     }
   }
 
