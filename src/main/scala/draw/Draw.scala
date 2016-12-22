@@ -1,19 +1,16 @@
 package draw
 
-import java.awt._
 import java.awt.event.{WindowAdapter, WindowEvent}
+import java.awt.{BorderLayout, Dimension, Graphics, Graphics2D}
 import java.io.Closeable
-import java.util.concurrent.atomic.AtomicReference
 import javax.swing._
-
-import aether.CubeXY
 
 object Draw {
   type Draw = (Dimension, Graphics2D) => Unit
 
   val Dim640x480 = new Dimension(640, 480)
 
-  def animate(fps: Int = 25, size: Dimension = Dim640x480)(draw: Draw): Closeable = {
+  def animate(fps: Double = 25, size: Dimension = Dim640x480)(draw: Draw): Closeable = {
     val animator = new DrawingPanel(draw)
     animator.setPreferredSize(size)
 
@@ -23,7 +20,7 @@ object Draw {
     frame.pack()
     frame.setVisible(true)
 
-    val timer = new Timer(1000 / fps, _ => animator.repaint())
+    val timer = new Timer((1000 / fps).toInt, _ => animator.repaint())
     timer.start()
 
     frame.addWindowListener(new WindowAdapter {
@@ -45,11 +42,4 @@ object Draw {
     }
   }
 
-  // TODO remove this some time
-  def main(args: Array[String]): Unit = {
-    val closeable = new AtomicReference[Closeable]()
-    SwingUtilities.invokeLater(() => closeable.set(animate()(CubeXY.draw)))
-    Thread.sleep(10000)
-    closeable.get().close()
-  }
 }
