@@ -1,6 +1,22 @@
 package aether
 
-object CubeXYZ {
+object Model {
+
+  final case class Point2D(x: Double, y: Double)
+
+  final case class Rectangle(p1: Point2D, p2: Point2D) {
+    lazy val width: Double = (p1.x - p2.x).abs
+    lazy val height: Double = (p1.y - p2.y).abs
+    lazy val llCorner: Point2D = Point2D(p1.x min p2.x, p1.y min p2.y)
+  }
+
+  sealed trait Shape2D
+
+  final case class Segment2D(p1: Point2D, p2: Point2D) extends Shape2D
+
+  final case class Ellipse2D(c: Point2D, hr: Double, vr: Double, angle: Double) extends Shape2D
+
+  final case class World2D(position: Rectangle, shapes: Set[Shape2D])
 
   final case class Direction3D(dx: Double, dy: Double, dz: Double)
 
@@ -12,7 +28,7 @@ object CubeXYZ {
 
   final case class Segment3D(p1: Point3D, p2: Point3D) extends StraightLine3D
 
-  final case class Wall(p1: CubeXY.Point2D, p2: CubeXY.Point2D)
+  final case class Wall(p1: Point2D, p2: Point2D)
 
   final case class Cuboid(p1: Point3D, p7: Point3D)
 
@@ -46,11 +62,11 @@ object CubeXYZ {
     world.copy(cylinders = world.cylinders.updated(id, (cylinder, DummyHierarchy)))
   }
 
-  def intersection(wall: Wall, plane: XYPlane): CubeXY.Segment2D = {
-    CubeXY.Segment2D(wall.p1, wall.p2)
+  def intersection(wall: Wall, plane: XYPlane): Segment2D = {
+    Segment2D(wall.p1, wall.p2)
   }
 
-  def intersection(cylinder: Cylinder, plane: XYPlane): Option[CubeXY.Ellipse2D] = {
+  def intersection(cylinder: Cylinder, plane: XYPlane): Option[Ellipse2D] = {
     val (intersect, p1, direction) = cylinder.center match {
       case Ray3D(p1, d) =>
         ((plane.z - p1.z) * d.dz >= 0,
@@ -74,15 +90,15 @@ object CubeXYZ {
         math.asin(dz.abs / dn)
       }
 
-      Some(CubeXY.Ellipse2D(
-        CubeXY.Point2D(x, y), cylinder.radius / math.cos(t), cylinder.radius, math.atan2(direction.dy, direction.dx)))
+      Some(Ellipse2D(
+        Point2D(x, y), cylinder.radius / math.cos(t), cylinder.radius, math.atan2(direction.dy, direction.dx)))
     }
   }
 
-  def intersection(world: World3D, plane: XYPlane): CubeXY.World2D = {
+  def intersection(world: World3D, plane: XYPlane): World2D = {
     val position = {
       import world.border._
-      CubeXY.Rectangle(CubeXY.Point2D(p1.x, p1.y), CubeXY.Point2D(p7.x, p7.y))
+      Rectangle(Point2D(p1.x, p1.y), Point2D(p7.x, p7.y))
     }
 
     val shapes = {
@@ -91,6 +107,6 @@ object CubeXYZ {
       segments.toSeq ++ ellipses.toSeq
     }
 
-    CubeXY.World2D(position, shapes.toSet)
+    World2D(position, shapes.toSet)
   }
 }
