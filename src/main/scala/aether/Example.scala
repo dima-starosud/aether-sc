@@ -6,6 +6,7 @@ import javax.swing.SwingUtilities
 
 import aether.Draw._
 import aether.Model._
+import aether.Operation._
 
 object Example {
   val world = World3D(

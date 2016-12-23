@@ -7,6 +7,7 @@ import java.io.Closeable
 import javax.swing._
 
 import aether.Model._
+import aether.Operation._
 
 object Draw {
   type Draw = (Dimension, Graphics2D) => Unit
