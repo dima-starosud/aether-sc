@@ -15,7 +15,9 @@ object Example {
       Wall(Point2D(250, 550), Point2D(550, 550)),
       Wall(Point2D(550, 550), Point2D(550, 250)),
       Wall(Point2D(550, 250), Point2D(250, 250))),
-    Map(1 -> (Cylinder(Ray3D(Point3D(250, 250, 200), Direction3D(1, 1, 1)), 50) -> DummyHierarchy)))
+    Set(
+      Cylinder(Ray3D(Point3D(250, 250, 200), Direction3D(1, 1, 1)), 50))
+  )
 
   val z = new AtomicInteger(0)
 

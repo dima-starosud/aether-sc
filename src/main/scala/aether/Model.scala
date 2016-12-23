@@ -34,11 +34,7 @@ object Model {
 
   final case class Cylinder(center: StraightLine3D, radius: Double)
 
-  final case class Hierarchy(priority: Int, origin: Option[Int], causes: Set[Int], effects: Set[Int])
-
-  val DummyHierarchy = Hierarchy(-1, Option.empty, Set.empty, Set.empty)
-
-  final case class World3D(border: Cuboid, walls: Set[Wall], cylinders: Map[Int, (Cylinder, Hierarchy)])
+  final case class World3D(border: Cuboid, walls: Set[Wall], cylinders: Set[Cylinder])
 
   final case class XYPlane(z: Double)
 
@@ -48,18 +44,12 @@ object Model {
 
   def inject(world: World3D, cylinder: Cylinder): World3D = {
     val wallIntersection = world.walls.flatMap(intersection(_, cylinder))
-    val cylinderIntersection = world.cylinders
-      .mapValues(p => intersection(p._1, cylinder).map(ps => (p._2, ps._1, ps._2)))
-      .collect {
-        case (k, Some(v)) => k -> v
-      }
+    val cylinderIntersection = world.cylinders.flatMap(intersection(_, cylinder))
 
     require(wallIntersection.isEmpty && cylinderIntersection.isEmpty,
       s"$wallIntersection.isEmpty && $cylinderIntersection.isEmpty; otherwise is not implemented yet")
 
-    val id = 1 + (world.cylinders.keySet + 0).max
-
-    world.copy(cylinders = world.cylinders.updated(id, (cylinder, DummyHierarchy)))
+    world.copy(cylinders = world.cylinders + cylinder)
   }
 
   def intersection(wall: Wall, plane: XYPlane): Segment2D = {
@@ -103,7 +93,7 @@ object Model {
 
     val shapes = {
       val segments = world.walls.map(intersection(_, plane))
-      val ellipses = world.cylinders.values.flatMap(p => intersection(p._1, plane))
+      val ellipses = world.cylinders.flatMap(intersection(_, plane))
       segments.toSeq ++ ellipses.toSeq
     }
 
