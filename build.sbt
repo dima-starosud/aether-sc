@@ -22,6 +22,11 @@ scalacOptions ++= Seq(
 )
 
 libraryDependencies ++= Seq(
+  // TODO we don't need all these libraries
+  "colt" % "colt" % "1.2.0",
+  "org.apache.commons" % "commons-math3" % "3.6.1",
+  "org.randombits.math" % "math-eval" % "1.0.1",
+  "gov.nist.math" % "jama" % "1.0.3",
   "org.typelevel" %% "cats" % "0.8.1",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 )
