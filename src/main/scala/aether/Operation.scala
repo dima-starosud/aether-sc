@@ -1,38 +1,8 @@
 package aether
 
 import aether.Model._
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
-import org.apache.commons.math3.geometry.euclidean.threed.{Line, Plane}
 
 object Operation {
-
-  object Apache {
-    def convert(line: StraightLine3D): Line = ???
-
-    def convert(wall: Wall): Plane = ???
-
-    def convert(vector: Vector3D): Point3D = ???
-  }
-
-  def intersection(wall: Wall, cylinder: Cylinder): Option[Point3D] = {
-    val plane = Apache.convert(wall)
-    val line = Apache.convert(cylinder.center)
-    Option(plane.intersection(line)).map(Apache.convert)
-    plane.getOffset(line.getOrigin)
-    None /* TODO Some(thing) */
-  }
-
-  def intersection(cylinder1: Cylinder, cylinder2: Cylinder): Option[(Point3D, Point3D)] = /* TODO Some(thing) */ None
-
-  def inject(world: World3D, cylinder: Cylinder): World3D = {
-    val wallIntersection = world.walls.flatMap(intersection(_, cylinder))
-    val cylinderIntersection = world.cylinders.flatMap(intersection(_, cylinder))
-
-    require(wallIntersection.isEmpty && cylinderIntersection.isEmpty,
-      s"$wallIntersection.isEmpty && $cylinderIntersection.isEmpty; otherwise is not implemented yet")
-
-    world.copy(cylinders = world.cylinders + cylinder)
-  }
 
   def intersection(wall: Wall, plane: XYPlane): Segment2D = {
     Segment2D(wall.p1, wall.p2)
