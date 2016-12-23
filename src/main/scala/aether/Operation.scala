@@ -1,9 +1,26 @@
 package aether
 
 import aether.Model._
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
+import org.apache.commons.math3.geometry.euclidean.threed.{Line, Plane}
 
 object Operation {
-  def intersection(wall: Wall, cylinder: Cylinder): Option[Point3D] = /* TODO Some(thing) */ None
+
+  object Apache {
+    def convert(line: StraightLine3D): Line = ???
+
+    def convert(wall: Wall): Plane = ???
+
+    def convert(vector: Vector3D): Point3D = ???
+  }
+
+  def intersection(wall: Wall, cylinder: Cylinder): Option[Point3D] = {
+    val plane = Apache.convert(wall)
+    val line = Apache.convert(cylinder.center)
+    Option(plane.intersection(line)).map(Apache.convert)
+    plane.getOffset(line.getOrigin)
+    None /* TODO Some(thing) */
+  }
 
   def intersection(cylinder1: Cylinder, cylinder2: Cylinder): Option[(Point3D, Point3D)] = /* TODO Some(thing) */ None
 
