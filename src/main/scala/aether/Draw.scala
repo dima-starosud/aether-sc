@@ -48,10 +48,10 @@ object Draw {
 
   val asAwt: Shape2D => AwtShape = {
     case e: Ellipse2D =>
-      AffineTransform.getRotateInstance(e.angle, e.c.x, e.c.y).createTransformedShape(
-        new AwtEllipse2D.Double(e.c.x - e.hr, e.c.y - e.vr, 2 * e.hr, 2 * e.vr))
+      AffineTransform.getRotateInstance(e.angle, e.c.getX, e.c.getY).createTransformedShape(
+        new AwtEllipse2D.Double(e.c.getX - e.hr, e.c.getY - e.vr, 2 * e.hr, 2 * e.vr))
     case Segment2D(p1, p2) =>
-      new Line2D.Double(p1.x, p1.y, p2.x, p2.y)
+      new Line2D.Double(p1.getX, p1.getY, p2.getX, p2.getY)
   }
 
   def affineTransformFor(rectangle: Rectangle, dimension: Dimension): AffineTransform = {
@@ -61,8 +61,8 @@ object Draw {
       rw,
       0, 0,
       -rh,
-      -rectangle.llCorner.x * rw,
-      dimension.height.toDouble + rectangle.llCorner.y * rh)
+      -rectangle.llCorner.getX * rw,
+      dimension.height.toDouble + rectangle.llCorner.getY * rh)
   }
 
   def draw(world: World2D, dimension: Dimension, graphics: Graphics2D): Unit = {
