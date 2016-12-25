@@ -30,11 +30,11 @@ object Operation {
       val t = {
         import direction._
         val dn = math.sqrt(Seq(dx, dy, dz).map(math.pow(_, 2)).sum)
-        math.asin(dz.abs / dn)
+        dz.abs / dn
       }
 
       Some(Ellipse2D(
-        new Vector2D(x, y), cylinder.radius / math.cos(t), cylinder.radius, math.atan2(direction.dy, direction.dx)))
+        new Vector2D(x, y), cylinder.radius / t, cylinder.radius, math.atan2(direction.dy, direction.dx)))
     }
   }
 

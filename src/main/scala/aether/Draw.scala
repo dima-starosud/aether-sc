@@ -34,6 +34,7 @@ object Draw {
     })
 
     () => {
+      // TODO bad idea; has to send quit signal to frame
       timer.stop()
       frame.dispose()
     }
