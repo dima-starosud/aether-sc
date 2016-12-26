@@ -22,7 +22,7 @@ class World3DAgent {
   def event(cylinderId: Int, z: Double, event: Vector3D): Unit = synchronized {
     var cylinders = world.cylinders(cylinderId)
     cylinders = cylinders to horizontalInfiniteCylinder(z)
-    val Some((c1, c2)) = cylinders.last.split(1)
+    val Some((c1, c2)) = cylinders.last.split(z)
     cylinders = cylinders.dropRight(1) + c1 + c2.copy(center = c2.center amend event)
     world = world.copy(cylinders = world.cylinders.updated(cylinderId, cylinders))
   }
@@ -42,10 +42,10 @@ final class InterestingGame extends SwingDrawingHandler {
 
   override lazy val actions: Map[KeyStroke, Action] = {
     val value = Map(
-      KeyEvent.VK_UP -> new Vector3D(0, 0.01, 1),
-      KeyEvent.VK_DOWN -> new Vector3D(0, -0.01, 1),
-      KeyEvent.VK_LEFT -> new Vector3D(-0.01, 0, 1),
-      KeyEvent.VK_RIGHT -> new Vector3D(0.01, 0, 1)
+      KeyEvent.VK_UP -> new Vector3D(0, 0.05, 0.0),
+      KeyEvent.VK_DOWN -> new Vector3D(0, -0.05, 0.0),
+      KeyEvent.VK_LEFT -> new Vector3D(-0.05, 0, 0.0),
+      KeyEvent.VK_RIGHT -> new Vector3D(0.05, 0, 0.0)
     )
 
     value.flatMap { case (key, vector) =>
