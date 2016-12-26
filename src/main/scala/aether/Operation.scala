@@ -111,10 +111,10 @@ object Operation {
     def amend(vector: Vector3D): StraightLine3D = {
       toEither.fold(
         s => {
-          println("Shit!!!")
+          println(s"Shit: $s!!!")
           ???
         },
-        r => r.copy(d = (r.d.toVector add d.toVector).toDirection))
+        r => r.copy(d = (r.d.toVector add vector).toDirection))
     }
   }
 

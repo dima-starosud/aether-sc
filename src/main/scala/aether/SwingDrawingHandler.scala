@@ -1,10 +1,10 @@
 package aether
 
-import java.awt.event.InputEvent
 import java.awt.{Dimension, Graphics2D}
+import javax.swing.{Action, KeyStroke}
 
-trait AwtGame {
+trait SwingDrawingHandler {
   def draw(dimension: Dimension, graphics: Graphics2D): Unit
 
-  def event(event: InputEvent): Unit
+  def actions: Map[KeyStroke, Action]
 }

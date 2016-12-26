@@ -18,6 +18,16 @@ object SomeGame {
     val frame = new JFrame("Animation")
     frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
     frame.getContentPane.add(animator)
+
+    val am = frame.getRootPane.getActionMap
+    val im = frame.getRootPane.getInputMap
+    for {
+      (stroke, action) <- game.actions
+    } {
+      am.put(stroke, action)
+      im.put(stroke, stroke)
+    }
+
     frame.pack()
     frame.setVisible(true)
 
@@ -28,13 +38,6 @@ object SomeGame {
       override def windowClosing(e: WindowEvent): Unit = {
         timer.stop()
       }
-    })
-    frame.addKeyListener(new KeyListener {
-      override def keyTyped(e: KeyEvent): Unit = game.event(e)
-
-      override def keyPressed(e: KeyEvent): Unit = game.event(e)
-
-      override def keyReleased(e: KeyEvent): Unit = game.event(e)
     })
   }
 
