@@ -11,17 +11,10 @@ object Operation {
   }
 
   def intersection(cylinder: Cylinder, plane: XYPlane): Option[Ellipse2D] = {
-    val (intersect, p1, direction) = cylinder.center match {
-      case Ray3D(p1, d) =>
-        ((plane.z - p1.getZ) * d.dz >= 0,
-          p1,
-          d)
-      case Segment3D(p1, p2) =>
-        ((plane.z - p1.getZ) * (plane.z - p2.getZ) <= 0,
-          p1,
-          Direction3D(p2.getX - p1.getX, p2.getY - p1.getY, p2.getZ - p1.getZ))
-    }
-    if (!intersect) {
+    val p1 = cylinder.center.p1
+    val direction = cylinder.center.d
+
+    if (!cylinder.center.intersects(plane.z)) {
       None
     } else {
       val rz = (plane.z - p1.getZ) / direction.dz
@@ -85,19 +78,19 @@ object Operation {
   }
 
   implicit final class StraightLine3DOps(val line: StraightLine3D) extends AnyVal {
-    def toEither: Either[Segment3D, Ray3D] = line match {
+    private def toEither: Either[Segment3D, Ray3D] = line match {
       case s: Segment3D => Left(s)
       case r: Ray3D => Right(r)
     }
 
-    def p1: Vector3D = toEither.fold(_.p1, _.p1)
-
-    def p2: Option[Vector3D] = toEither.left.toOption.map(_.p2)
-
     def d: Direction3D = toEither.fold(s => (s.p2 subtract s.p1).toDirection, _.d)
 
-    def split(z: Double): Option[(Segment3D, StraightLine3D)] = {
-      if (p1.getZ > z || p2.exists(_.getZ < z)) {
+    def p1: Vector3D = toEither.fold(_.p1, _.p1)
+
+    private def p2: Option[Vector3D] = toEither.left.toOption.map(_.p2)
+
+    def split(z: Double): Option[(StraightLine3D, StraightLine3D)] = {
+      if (!intersects(z)) {
         None
       } else {
         val cz = (z - p1.getZ) / d.dz
@@ -115,6 +108,10 @@ object Operation {
           ???
         },
         r => r.copy(d = (r.d.toVector add vector).toDirection))
+    }
+
+    def intersects(z: Double): Boolean = {
+      p1.getZ <= z && p2.forall(_.getZ >= z)
     }
   }
 

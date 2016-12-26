@@ -19,7 +19,7 @@ object Model {
 
   final case class Direction3D(dx: Double, dy: Double, dz: Double)
 
-  trait StraightLine3D
+  sealed trait StraightLine3D
 
   final case class Ray3D(p1: Vector3D, d: Direction3D) extends StraightLine3D
 
