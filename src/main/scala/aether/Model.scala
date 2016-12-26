@@ -3,6 +3,8 @@ package aether
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
+import scala.collection.SortedSet
+
 object Model {
 
   final case class Rectangle(p1: Vector2D, p2: Vector2D)
@@ -29,7 +31,7 @@ object Model {
 
   final case class Cylinder(center: StraightLine3D, radius: Double)
 
-  final case class World3D(border: Cuboid, walls: Set[Wall], cylinders: Set[Cylinder])
+  final case class World3D(border: Cuboid, walls: Set[Wall], cylinders: Map[Int, SortedSet[Cylinder]])
 
   final case class XYPlane(z: Double)
 

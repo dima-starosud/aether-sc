@@ -10,6 +10,8 @@ import aether.Operation._
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
+import scala.collection.SortedSet
+
 object Example {
   val world = World3D(
     Cuboid(new Vector3D(200, 200, 200), new Vector3D(600, 600, 600)),
@@ -18,8 +20,7 @@ object Example {
       Wall(new Vector2D(250, 550), new Vector2D(550, 550)),
       Wall(new Vector2D(550, 550), new Vector2D(550, 250)),
       Wall(new Vector2D(550, 250), new Vector2D(250, 250))),
-    Set(
-      Cylinder(Ray3D(new Vector3D(250, 250, 200), Direction3D(1, 1, 1)), 50))
+    Map(1 -> SortedSet(Cylinder(Ray3D(new Vector3D(250, 250, 200), Direction3D(1, 1, 1)), 50)))
   )
 
   val z = new AtomicInteger(0)

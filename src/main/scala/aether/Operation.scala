@@ -1,6 +1,7 @@
 package aether
 
 import aether.Model._
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
 object Operation {
@@ -46,11 +47,16 @@ object Operation {
 
     val shapes = {
       val segments = world.walls.map(intersection(_, plane))
-      val ellipses = world.cylinders.flatMap(intersection(_, plane))
+      val ellipses = world.cylinders.values.flatten.flatMap(intersection(_, plane))
       segments.toSeq ++ ellipses.toSeq
     }
 
     World2D(position, shapes.toSet)
+  }
+
+  def horizontalInfiniteCylinder(z: Double): Cylinder = {
+    val p1 = new Vector3D(Double.NaN, Double.NaN, z)
+    Cylinder(Segment3D(p1, p1), Double.NaN)
   }
 
   implicit final class RectangleOps(val rectangle: Rectangle) extends AnyVal {
@@ -64,4 +70,61 @@ object Operation {
     def llCorner: Vector2D = new Vector2D(p1.getX min p2.getX, p1.getY min p2.getY)
   }
 
+  implicit final class Vector3DOps(val vector: Vector3D) extends AnyVal {
+
+    import vector._
+
+    def toDirection: Direction3D = Direction3D(getX, getY, getZ)
+  }
+
+  implicit final class Direction3DOps(val direction: Direction3D) extends AnyVal {
+
+    import direction._
+
+    def toVector: Vector3D = new Vector3D(dx, dy, dz)
+  }
+
+  implicit final class StraightLine3DOps(val line: StraightLine3D) extends AnyVal {
+    def toEither: Either[Segment3D, Ray3D] = line match {
+      case s: Segment3D => Left(s)
+      case r: Ray3D => Right(r)
+    }
+
+    def p1: Vector3D = toEither.fold(_.p1, _.p1)
+
+    def p2: Option[Vector3D] = toEither.left.toOption.map(_.p2)
+
+    def d: Direction3D = toEither.fold(s => (s.p2 subtract s.p1).toDirection, _.d)
+
+    def split(z: Double): Option[(Segment3D, StraightLine3D)] = {
+      if (p1.getZ > z || p2.exists(_.getZ < z)) {
+        None
+      } else {
+        val cz = (z - p1.getZ) / d.dz
+        val p2 = new Vector3D(cz * d.dx + p1.getX, cz * d.dy + p1.getY, z)
+        val line1 = Segment3D(p1, p2)
+        val line2 = toEither.fold(_.copy(p1 = p2), _.copy(p1 = p2))
+        Some((line1, line2))
+      }
+    }
+
+    def amend(vector: Vector3D): StraightLine3D = {
+      toEither.fold(
+        s => {
+          println("Shit!!!")
+          ???
+        },
+        r => r.copy(d = (r.d.toVector add d.toVector).toDirection))
+    }
+  }
+
+  implicit final class CylinderOps(val cylinder: Cylinder) extends AnyVal {
+    def split(z: Double): Option[(Cylinder, Cylinder)] = {
+      cylinder.center.split(z).map {
+        case (c1, c2) => (cylinder.copy(center = c1), cylinder.copy(center = c2))
+      }
+    }
+  }
+
+  implicit val cylinderOrdering: Ordering[Cylinder] = Ordering.by(_.center.p1.getZ)
 }
