@@ -17,8 +17,6 @@ object Model {
 
   final case class World2D(position: Rectangle, shapes: Set[Shape2D])
 
-  final case class Direction3D(dx: Double, dy: Double, dz: Double)
-
   sealed abstract class StraightLine3D(val line: Line, val region: Set[Plane])
 
   final case class Ray3D(p1: Vector3D, d: Vector3D)
