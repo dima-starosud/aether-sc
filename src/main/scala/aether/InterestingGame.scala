@@ -38,7 +38,7 @@ final class InterestingGame extends SwingDrawingHandler {
 
   override def draw(dimension: Dimension, graphics: Graphics2D): Unit = {
     val w2d = Operation.intersection(worldAgent.get(), XYPlane(currentTimeMillis))
-    Draw.draw(w2d, dimension, graphics)
+    Draw.draw2D(w2d, dimension, graphics)
   }
 
   override lazy val actions: Map[KeyStroke, Action] = {

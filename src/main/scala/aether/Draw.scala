@@ -1,26 +1,33 @@
 package aether
 
 import java.awt.event.{WindowAdapter, WindowEvent}
-import java.awt.geom.{AffineTransform, Ellipse2D => AwtEllipse2D, Line2D}
+import java.awt.geom.{AffineTransform, Line2D, Ellipse2D => AwtEllipse2D}
 import java.awt.{BorderLayout, Dimension, Graphics, Graphics2D, Shape => AwtShape}
-import java.io.Closeable
 import javax.swing._
 
 import aether.Model._
 import aether.Operation._
 
 object Draw {
-  type Draw = (Dimension, Graphics2D) => Unit
-
   val Dim640x480 = new Dimension(640, 480)
 
-  def animate(fps: Double = 25, size: Dimension = Dim640x480)(draw: Draw): Closeable = {
-    val animator = new DrawingPanel(draw)
+  def animate(fps: Double = 25, size: Dimension = Dim640x480)(handler: SwingDrawingHandler): Unit = {
+    val animator = new DrawingPanel(handler.draw)
     animator.setPreferredSize(size)
 
     val frame = new JFrame("Animation")
     frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
     frame.getContentPane.add(animator)
+
+    val am = frame.getRootPane.getActionMap
+    val im = frame.getRootPane.getInputMap
+    for {
+      (stroke, action) <- handler.actions
+    } {
+      am.put(stroke, action)
+      im.put(stroke, stroke)
+    }
+
     frame.pack()
     frame.setVisible(true)
 
@@ -32,15 +39,9 @@ object Draw {
         timer.stop()
       }
     })
-
-    () => {
-      // TODO bad idea; has to send quit signal to frame
-      timer.stop()
-      frame.dispose()
-    }
   }
 
-  class DrawingPanel(draw: Draw) extends JPanel(new BorderLayout) {
+  class DrawingPanel(draw: (Dimension, Graphics2D) => Unit) extends JPanel(new BorderLayout) {
     protected override def paintComponent(g: Graphics): Unit = {
       super.paintComponent(g)
       draw(getSize, g.asInstanceOf[Graphics2D])
@@ -66,7 +67,7 @@ object Draw {
       dimension.height.toDouble + rectangle.llCorner.getY * rh)
   }
 
-  def draw(world: World2D, dimension: Dimension, graphics: Graphics2D): Unit = {
+  def draw2D(world: World2D, dimension: Dimension, graphics: Graphics2D): Unit = {
     graphics.transform(affineTransformFor(world.position, dimension))
     world.shapes.foreach(graphics draw asAwt(_))
   }
