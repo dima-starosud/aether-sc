@@ -20,7 +20,7 @@ object Example {
       Wall(new Vector2D(250, 550), new Vector2D(550, 550)),
       Wall(new Vector2D(550, 550), new Vector2D(550, 250)),
       Wall(new Vector2D(550, 250), new Vector2D(250, 250))),
-    Map(1 -> SortedSet(Cylinder(Ray3D(new Vector3D(250, 250, 200), Direction3D(1, 1, 1)), 50)))
+    Map(1 -> SortedSet(Cylinder(Ray3D(new Vector3D(250, 250, 200), new Vector3D(1, 1, 1)), 50)))
   )
 
   val z = new AtomicInteger(0)

@@ -1,6 +1,6 @@
 package aether
 
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
+import org.apache.commons.math3.geometry.euclidean.threed.{Line, Plane, Vector3D}
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
 import scala.collection.SortedSet
@@ -19,11 +19,13 @@ object Model {
 
   final case class Direction3D(dx: Double, dy: Double, dz: Double)
 
-  sealed trait StraightLine3D
+  sealed abstract class StraightLine3D(val line: Line, val region: Set[Plane])
 
-  final case class Ray3D(p1: Vector3D, d: Direction3D) extends StraightLine3D
+  final case class Ray3D(p1: Vector3D, d: Vector3D)
+    extends StraightLine3D(new Line(p1, p1 add d, 0), Set(new Plane(p1, d, 0)))
 
-  final case class Segment3D(p1: Vector3D, p2: Vector3D) extends StraightLine3D
+  final case class Segment3D(p1: Vector3D, p2: Vector3D)
+    extends StraightLine3D(new Line(p1, p2, 0), Set(new Plane(p2 subtract p1, 0), new Plane(p1 subtract p2, 0)))
 
   final case class Wall(p1: Vector2D, p2: Vector2D)
 

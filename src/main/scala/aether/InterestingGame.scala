@@ -14,7 +14,7 @@ class World3DAgent {
   private var world = World3D(
     Cuboid(new Vector3D(200, 200, 0), new Vector3D(600, 600, 1e9d)),
     Set.empty,
-    Map(1 -> SortedSet(Cylinder(Ray3D(new Vector3D(400, 400, 0), Direction3D(0, 0, 1)), 50)))
+    Map(1 -> SortedSet(Cylinder(Ray3D(new Vector3D(400, 400, 0), new Vector3D(0, 0, 1)), 50)))
   )
 
   def get(): World3D = synchronized(world)

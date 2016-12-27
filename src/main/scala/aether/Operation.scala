@@ -1,7 +1,7 @@
 package aether
 
 import aether.Model._
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
+import org.apache.commons.math3.geometry.euclidean.threed._
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
 object Operation {
@@ -10,25 +10,22 @@ object Operation {
     Segment2D(wall.p1, wall.p2)
   }
 
-  def intersection(cylinder: Cylinder, plane: XYPlane): Option[Ellipse2D] = {
-    val p1 = cylinder.center.p1
-    val direction = cylinder.center.d
+  def intersection(cylinder: Cylinder, xyPlane: XYPlane): Option[Ellipse2D] = {
+    val line = cylinder.center.line
+    val plane = xyPlane.plane
+    val is = plane intersection line
 
-    if (!cylinder.center.intersects(plane.z)) {
+    val intersects = cylinder.center.region.forall(_.getOffset(is) >= 0)
+
+    if (!intersects) {
       None
     } else {
-      val rz = (plane.z - p1.getZ) / direction.dz
-      val x = rz * direction.dx + p1.getX
-      val y = rz * direction.dy + p1.getY
+      val l = cylinder.radius / (plane.getNormal.normalize() dotProduct line.getDirection.normalize())
 
-      val t = {
-        import direction._
-        val dn = math.sqrt(Seq(dx, dy, dz).map(math.pow(_, 2)).sum)
-        dz.abs / dn
-      }
+      val hm = new Vector2D(is.getX, is.getY)
 
       Some(Ellipse2D(
-        new Vector2D(x, y), cylinder.radius / t, cylinder.radius, math.atan2(direction.dy, direction.dx)))
+        hm, l, cylinder.radius, math.atan2(line.getDirection.getY, line.getDirection.getX)))
     }
   }
 
@@ -77,24 +74,35 @@ object Operation {
     def toVector: Vector3D = new Vector3D(dx, dy, dz)
   }
 
-  implicit final class StraightLine3DOps(val line: StraightLine3D) extends AnyVal {
-    private def toEither: Either[Segment3D, Ray3D] = line match {
+  implicit final class XYPlaneOps(val self: XYPlane) extends AnyVal {
+    def plane: Plane = {
+      val planeNormal = new Vector3D(0, 0, self.z)
+      new Plane(planeNormal, planeNormal, 0)
+    }
+  }
+
+  implicit final class StraightLine3DOps(val self: StraightLine3D) extends AnyVal {
+
+    import self._
+
+    private def toEither: Either[Segment3D, Ray3D] = self match {
       case s: Segment3D => Left(s)
       case r: Ray3D => Right(r)
     }
 
-    def d: Direction3D = toEither.fold(s => (s.p2 subtract s.p1).toDirection, _.d)
-
+    // TODO try kind of minP here
     def p1: Vector3D = toEither.fold(_.p1, _.p1)
 
-    private def p2: Option[Vector3D] = toEither.left.toOption.map(_.p2)
+    def minZ: Double = region.map(_.intersection(line).getZ).min
 
     def split(z: Double): Option[(StraightLine3D, StraightLine3D)] = {
-      if (!intersects(z)) {
+      val plane = XYPlane(z).plane
+      val p2 = plane intersection line
+      val intersects = region.forall(_.getOffset(p2) >= 0)
+
+      if (!intersects) {
         None
       } else {
-        val cz = (z - p1.getZ) / d.dz
-        val p2 = new Vector3D(cz * d.dx + p1.getX, cz * d.dy + p1.getY, z)
         val line1 = Segment3D(p1, p2)
         val line2 = toEither.fold(_.copy(p1 = p2), _.copy(p1 = p2))
         Some((line1, line2))
@@ -107,11 +115,7 @@ object Operation {
           println(s"Shit: $s!!!")
           ???
         },
-        r => r.copy(d = (r.d.toVector add vector).toDirection))
-    }
-
-    def intersects(z: Double): Boolean = {
-      p1.getZ <= z && p2.forall(_.getZ >= z)
+        r => r.copy(d = r.d add vector))
     }
   }
 
@@ -123,5 +127,5 @@ object Operation {
     }
   }
 
-  implicit val cylinderOrdering: Ordering[Cylinder] = Ordering.by(_.center.p1.getZ)
+  implicit val cylinderOrdering: Ordering[Cylinder] = Ordering.by(_.center.minZ)
 }
