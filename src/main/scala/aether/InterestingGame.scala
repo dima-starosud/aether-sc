@@ -33,6 +33,7 @@ final class InterestingGame extends SwingDrawingHandler {
 
   private val worldAgent = new World3DAgent
 
+  // TODO one may use ActionEvent#getWhen
   private def currentTimeMillis: Double = (System.nanoTime() - startMillis).toDouble / 1e6d
 
   override def draw(dimension: Dimension, graphics: Graphics2D): Unit = {
