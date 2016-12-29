@@ -10,6 +10,7 @@ import aether.PingPongAgent._
 import org.apache.commons.math3.geometry.euclidean.threed.{Line, Plane, Vector3D}
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
+import scala.annotation.tailrec
 import scala.collection.SortedMap
 
 object PingPong {
@@ -74,7 +75,6 @@ object PingPongAgent {
 
   final case class State2D(position: Rectangle, objects: Seq[Shape])
 
-  // TODO simple stack-like structure should be enough for this
   type Staged[T] = SortedMap[Double, T]
 
   def xyPlane(z: Double): Plane = {
@@ -105,13 +105,33 @@ object PingPongAgent {
     val diameter: Double = 2 * radius
 
     override def xy(z: Double): Shape = {
-      val center = xyPlane(z).intersection(line)
+      val center = move(z).point1
       new Ellipse2D.Double(center.getX - radius, center.getY - radius, diameter, diameter)
     }
 
-    // def move(z: Double): Cylinder = ???
+    def move(z: Double): Cylinder = {
+      copy(point1 = xyPlane(z) intersection line)
+    }
 
-    // def impulse(direction: Vector3D): Cylinder = ???
+    def impulse(impulse: Vector3D): Cylinder = copy(direction = direction add impulse)
+  }
+
+  implicit final class StagedCylinderOps(val cylinders: Staged[Cylinder]) extends AnyVal {
+    def calculateTo(value: Double, position: Rectangle, parallelepiped: Set[Parallelepiped]): Staged[Cylinder] = {
+      @tailrec
+      def loop(cylinders: Staged[Cylinder]): Staged[Cylinder] = {
+        val (currentKey, currentCylinder) = cylinders.last
+        if (currentKey >= value) cylinders
+        else {
+          collision(position, parallelepiped, currentCylinder, currentKey) match {
+            case None => cylinders
+            case Some(point) => loop(cylinders + point)
+          }
+        }
+      }
+
+      loop(cylinders)
+    }
   }
 
   final case class Parallelepiped(point1: Vector3D, point3: Vector3D, direction: Vector3D) extends AwtShape {
@@ -165,6 +185,11 @@ object PingPongAgent {
       }
     if (touchPoints.isEmpty) None
     else Some(touchPoints.min - Epsilon)
+  }
+
+  // TODO more descriptiveness wouldn't hurt
+  def collision(rectangle: Rectangle, parallelepiped: Set[Parallelepiped], cylinder: Cylinder, z: Double): Option[(Double, Cylinder)] = {
+    ???
   }
 }
 
