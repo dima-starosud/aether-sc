@@ -1,11 +1,10 @@
 package aether
 
 import java.awt.event.{ActionEvent, KeyEvent}
-import java.awt.geom.{Ellipse2D, Rectangle2D}
+import java.awt.geom.{AffineTransform, Ellipse2D, Rectangle2D}
 import java.awt.{Dimension, Graphics2D, Shape}
 import javax.swing.{AbstractAction, Action, KeyStroke, SwingUtilities}
 
-import aether.Model.Rectangle
 import aether.PingPongAgent._
 import org.apache.commons.math3.geometry.euclidean.threed.{Line, Plane, Vector3D}
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
@@ -29,7 +28,7 @@ final class PingPongHandler extends SwingDrawingHandler {
 
   override def draw(dimension: Dimension, graphics: Graphics2D): Unit = {
     val s = state.at(System.currentTimeMillis() - StartMillis)
-    graphics.setTransform(Draw.affineTransformFor(s.position, dimension))
+    graphics.setTransform(affineTransformFor(s.position, dimension))
     s.objects.foreach(graphics.fill)
   }
 
@@ -98,6 +97,30 @@ object PingPongAgent {
 
   implicit final class StagedAwtShape[T <: AwtShape](val staged: Staged[T]) extends AwtShape {
     override def xy(z: Double): Shape = (staged to z).last._2.xy(z)
+  }
+
+  final case class Rectangle(point1: Vector2D, point3: Vector2D)
+
+  implicit final class RectangleOps(val rectangle: Rectangle) extends AnyVal {
+
+    import rectangle._
+
+    def width: Double = (point1.getX - point3.getX).abs
+
+    def height: Double = (point1.getY - point3.getY).abs
+
+    def llCorner: Vector2D = new Vector2D(point1.getX min point3.getX, point1.getY min point3.getY)
+  }
+
+  def affineTransformFor(rectangle: Rectangle, dimension: Dimension): AffineTransform = {
+    val rw = dimension.width.toDouble / rectangle.width
+    val rh = dimension.height.toDouble / rectangle.height
+    new AffineTransform(
+      rw,
+      0, 0,
+      -rh,
+      -rectangle.llCorner.getX * rw,
+      dimension.height.toDouble + rectangle.llCorner.getY * rh)
   }
 
   final case class Cylinder(point1: Vector3D, direction: Vector3D, radius: Double) extends AwtShape {

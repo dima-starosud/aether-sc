@@ -1,12 +1,8 @@
 package aether
 
 import java.awt.event.{WindowAdapter, WindowEvent}
-import java.awt.geom.AffineTransform
 import java.awt.{BorderLayout, Dimension, Graphics, Graphics2D}
 import javax.swing._
-
-import aether.Model._
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
 object Draw {
   val Dim640x480 = new Dimension(640, 480)
@@ -48,25 +44,4 @@ object Draw {
     }
   }
 
-  implicit final class RectangleOps(val rectangle: Rectangle) extends AnyVal {
-
-    import rectangle._
-
-    def width: Double = (point1.getX - point3.getX).abs
-
-    def height: Double = (point1.getY - point3.getY).abs
-
-    def llCorner: Vector2D = new Vector2D(point1.getX min point3.getX, point1.getY min point3.getY)
-  }
-
-  def affineTransformFor(rectangle: Rectangle, dimension: Dimension): AffineTransform = {
-    val rw = dimension.width.toDouble / rectangle.width
-    val rh = dimension.height.toDouble / rectangle.height
-    new AffineTransform(
-      rw,
-      0, 0,
-      -rh,
-      -rectangle.llCorner.getX * rw,
-      dimension.height.toDouble + rectangle.llCorner.getY * rh)
-  }
 }
