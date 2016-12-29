@@ -79,20 +79,17 @@ object PingPongAgent {
 
   def xyPlane(z: Double): Plane = {
     val point = new Vector3D(0, 0, z)
-    val normal = new Vector3D(0, 0, 1)
-    new Plane(point, normal, 0)
+    new Plane(point, Vector3D.PLUS_K, 0)
   }
 
   def yzPlane(x: Double): Plane = {
     val point = new Vector3D(x, 0, 0)
-    val normal = new Vector3D(1, 0, 0)
-    new Plane(point, normal, 0)
+    new Plane(point, Vector3D.PLUS_I, 0)
   }
 
   def xzPlane(y: Double): Plane = {
     val point = new Vector3D(0, y, 0)
-    val normal = new Vector3D(0, 1, 0)
-    new Plane(point, normal, 0)
+    new Plane(point, Vector3D.PLUS_J, 0)
   }
 
   sealed trait AwtShape {
@@ -169,8 +166,6 @@ object PingPongAgent {
     if (touchPoints.isEmpty) None
     else Some(touchPoints.min - Epsilon)
   }
-
-  val ZDirection = new Vector3D(0, 0, 1)
 }
 
 final class PingPongAgent {
@@ -180,12 +175,12 @@ final class PingPongAgent {
 
   private var state: State3D = State3D(
     Rectangle(new Vector2D(0, 0), new Vector2D(1000, 600)),
-    SortedMap(0.0 -> Cylinder(new Vector3D(500, 300, 0), ZDirection, 25)),
+    SortedMap(0.0 -> Cylinder(new Vector3D(500, 300, 0), Vector3D.PLUS_K, 25)),
     Map(
       LeftRacket -> SortedMap(0.0 ->
-        Parallelepiped(new Vector3D(50, 250, 0), new Vector3D(70, 350, 0), ZDirection)),
+        Parallelepiped(new Vector3D(50, 250, 0), new Vector3D(70, 350, 0), Vector3D.PLUS_K)),
       RightRacket -> SortedMap(0.0 ->
-        Parallelepiped(new Vector3D(950, 250, 0), new Vector3D(930, 350, 0), ZDirection))
+        Parallelepiped(new Vector3D(950, 250, 0), new Vector3D(930, 350, 0), Vector3D.PLUS_K))
     )
   )
 
@@ -199,7 +194,7 @@ final class PingPongAgent {
     stage = stage.move(when).impulse(racketMoving(action))
     stages += (when -> stage)
     for (touchPoint <- touch(state.position, stage, when)) {
-      stages += (touchPoint -> stage.move(touchPoint).copy(direction = ZDirection))
+      stages += (touchPoint -> stage.move(touchPoint).copy(direction = Vector3D.PLUS_K))
     }
     state = state.copy(rackets = state.rackets.updated(racket, stages))
   }
