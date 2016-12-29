@@ -5,7 +5,7 @@ import java.awt.geom.{Ellipse2D, Rectangle2D}
 import java.awt.{Dimension, Graphics2D, Shape}
 import javax.swing.{AbstractAction, Action, KeyStroke, SwingUtilities}
 
-import aether.Model.{Cuboid, Rectangle}
+import aether.Model.Rectangle
 import aether.PingPongAgent._
 import org.apache.commons.math3.geometry.euclidean.threed.{Line, Plane, Vector3D}
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
@@ -137,7 +137,7 @@ object PingPongAgent {
     def impulse(impulse: Vector3D): Parallelepiped = copy(direction = direction add impulse)
   }
 
-  final case class State3D(position: Cuboid, ball: Staged[Cylinder], rackets: Map[Racket, Staged[Parallelepiped]])
+  final case class State3D(position: Rectangle, ball: Staged[Cylinder], rackets: Map[Racket, Staged[Parallelepiped]])
 
   implicit final class Vector3DOps(val vector: Vector3D) extends AnyVal {
 
@@ -148,23 +148,21 @@ object PingPongAgent {
 
   def intersection(state: State3D, z: Double): State2D = {
     import state._
-    State2D(Rectangle(position.p1.xy, position.p7.xy),
-      (ball +: rackets.values.toSeq).map(_ xy z)
-    )
+    State2D(position, (ball +: rackets.values.toSeq).map(_ xy z))
   }
 
   val Epsilon = 1e-9
 
-  def touch(cuboid: Cuboid, parallelepiped: Parallelepiped, z: Double): Option[Double] = {
+  def touch(rectangle: Rectangle, parallelepiped: Parallelepiped, z: Double): Option[Double] = {
     val touchPoints =
       for {
-        y <- Seq(cuboid.p1.getY, cuboid.p7.getY)
+        y <- Seq(rectangle.point1.getY, rectangle.point3.getY)
         plane = xzPlane(y)
         line <- Seq(parallelepiped.line1, parallelepiped.line3)
         intersection <- Option(plane intersection line)
-        if intersection.getZ >= z
-        if Seq(intersection subtract cuboid.p1, cuboid.p7 subtract intersection)
-          .flatMap(_.toArray).forall(_ >= -Epsilon)
+        if intersection.getZ >= z &&
+          intersection.getX - rectangle.point1.getX >= -Epsilon &&
+          rectangle.point3.getX - intersection.getX >= -Epsilon
       } yield {
         intersection.getZ
       }
@@ -181,7 +179,7 @@ final class PingPongAgent {
     RacketDown -> new Vector3D(0, -0.1, 0))
 
   private var state: State3D = State3D(
-    Cuboid(new Vector3D(0, 0, 0), new Vector3D(1000, 600, 1e100)),
+    Rectangle(new Vector2D(0, 0), new Vector2D(1000, 600)),
     SortedMap(0.0 -> Cylinder(new Vector3D(500, 300, 0), ZDirection, 25)),
     Map(
       LeftRacket -> SortedMap(0.0 ->

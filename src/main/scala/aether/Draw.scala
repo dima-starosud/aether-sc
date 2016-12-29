@@ -1,12 +1,12 @@
 package aether
 
 import java.awt.event.{WindowAdapter, WindowEvent}
-import java.awt.geom.{AffineTransform, Line2D, Ellipse2D => AwtEllipse2D}
-import java.awt.{BorderLayout, Dimension, Graphics, Graphics2D, Shape => AwtShape}
+import java.awt.geom.AffineTransform
+import java.awt.{BorderLayout, Dimension, Graphics, Graphics2D}
 import javax.swing._
 
 import aether.Model._
-import aether.Operation._
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D
 
 object Draw {
   val Dim640x480 = new Dimension(640, 480)
@@ -48,12 +48,15 @@ object Draw {
     }
   }
 
-  val asAwt: Shape2D => AwtShape = {
-    case e: Ellipse2D =>
-      AffineTransform.getRotateInstance(e.angle, e.c.getX, e.c.getY).createTransformedShape(
-        new AwtEllipse2D.Double(e.c.getX - e.hr, e.c.getY - e.vr, 2 * e.hr, 2 * e.vr))
-    case Segment2D(p1, p2) =>
-      new Line2D.Double(p1.getX, p1.getY, p2.getX, p2.getY)
+  implicit final class RectangleOps(val rectangle: Rectangle) extends AnyVal {
+
+    import rectangle._
+
+    def width: Double = (point1.getX - point3.getX).abs
+
+    def height: Double = (point1.getY - point3.getY).abs
+
+    def llCorner: Vector2D = new Vector2D(point1.getX min point3.getX, point1.getY min point3.getY)
   }
 
   def affineTransformFor(rectangle: Rectangle, dimension: Dimension): AffineTransform = {
@@ -65,10 +68,5 @@ object Draw {
       -rh,
       -rectangle.llCorner.getX * rw,
       dimension.height.toDouble + rectangle.llCorner.getY * rh)
-  }
-
-  def draw2D(world: World2D, dimension: Dimension, graphics: Graphics2D): Unit = {
-    graphics.transform(affineTransformFor(world.position, dimension))
-    world.shapes.foreach(graphics draw asAwt(_))
   }
 }
