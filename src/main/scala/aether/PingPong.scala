@@ -140,7 +140,7 @@ object PingPongAgent {
   }
 
   implicit final class StagedCylinderOps(val cylinders: Staged[Cylinder]) extends AnyVal {
-    def calculateTo(value: Double, position: Rectangle, parallelepiped: Set[Parallelepiped]): Staged[Cylinder] = {
+    def calculateTo(value: Double, position: Rectangle, parallelepiped: Set[Staged[Parallelepiped]]): Staged[Cylinder] = {
       @tailrec
       def loop(cylinders: Staged[Cylinder]): Staged[Cylinder] = {
         val (currentKey, currentCylinder) = cylinders.last
@@ -211,8 +211,13 @@ object PingPongAgent {
   }
 
   // TODO more descriptiveness wouldn't hurt
-  def collision(rectangle: Rectangle, parallelepiped: Set[Parallelepiped], cylinder: Cylinder, z: Double): Option[(Double, Cylinder)] = {
-    ???
+  def collision(
+    rectangle: Rectangle,
+    parallelepiped: Set[Staged[Parallelepiped]],
+    cylinder: Cylinder,
+    z: Double
+  ): Option[(Double, Cylinder)] = {
+    None
   }
 }
 
@@ -223,7 +228,7 @@ final class PingPongAgent {
 
   private var state: State3D = State3D(
     Rectangle(new Vector2D(0, 0), new Vector2D(1000, 600)),
-    SortedMap(0.0 -> Cylinder(new Vector3D(500, 300, 0), Vector3D.PLUS_K, 25)),
+    SortedMap(0.0 -> Cylinder(new Vector3D(500, 300, 0), new Vector3D(0.05, 0.02, 1) add Vector3D.PLUS_K, 25)),
     Map(
       LeftRacket -> SortedMap(0.0 ->
         Parallelepiped(new Vector3D(50, 250, 0), new Vector3D(70, 350, 0), Vector3D.PLUS_K)),
@@ -232,8 +237,12 @@ final class PingPongAgent {
     )
   )
 
-  def at(when: Double): State2D = synchronized {
-    intersection(state, when)
+  def at(when: Double): State2D = {
+    val currentState = synchronized {
+      state = state.copy(ball = state.ball.calculateTo(when, state.position, state.rackets.values.toSet))
+      state
+    }
+    intersection(currentState, when)
   }
 
   def action(when: Double, racket: Racket, action: RacketAction): Unit = synchronized {
@@ -244,7 +253,10 @@ final class PingPongAgent {
     for (touchPoint <- touch(state.position, stage, when)) {
       stages += (touchPoint -> stage.move(touchPoint).copy(direction = Vector3D.PLUS_K))
     }
-    state = state.copy(rackets = state.rackets.updated(racket, stages))
+    state = state.copy(
+      ball = state.ball until when,
+      rackets = state.rackets.updated(racket, stages)
+    )
   }
 }
 
