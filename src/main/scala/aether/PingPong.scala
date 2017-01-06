@@ -140,15 +140,15 @@ object PingPongAgent {
   }
 
   implicit final class StagedCylinderOps(val cylinders: Staged[Cylinder]) extends AnyVal {
-    def calculateTo(value: Double, position: Rectangle, parallelepiped: Set[Staged[Parallelepiped]]): Staged[Cylinder] = {
+    def calculateTo(value: Double, position: Rectangle, parallelepiped: Seq[Staged[Parallelepiped]]): Staged[Cylinder] = {
       @tailrec
       def loop(cylinders: Staged[Cylinder]): Staged[Cylinder] = {
-        val (currentKey, currentCylinder) = cylinders.last
+        val current@(currentKey, _) = cylinders.last
         if (currentKey >= value) cylinders
         else {
-          collision(position, parallelepiped, currentCylinder, currentKey) match {
+          intersection(position, parallelepiped, current) match {
             case None => cylinders
-            case Some(point) => loop(cylinders + point)
+            case Some(point@(key, _)) if key > currentKey => loop(cylinders + point)
           }
         }
       }
@@ -157,9 +157,13 @@ object PingPongAgent {
     }
   }
 
-  final case class Parallelepiped(point1: Vector3D, point3: Vector3D, direction: Vector3D) extends AwtShape {
+  final case class Parallelepiped(point1: Vector3D, _point3: Vector3D, direction: Vector3D) extends AwtShape {
     val line1 = new Line(point1, point1 add direction, 0)
-    val line3 = new Line(point3, point3 add direction, 0)
+    val line3 = new Line(_point3, _point3 add direction, 0)
+
+    val point3: Vector2D = {
+      xyPlane(point1.getZ).intersection(line3).xy
+    }
 
     override def xy(z: Double): Shape = {
       val parallelepiped = move(z)
@@ -171,7 +175,7 @@ object PingPongAgent {
 
     def move(z: Double): Parallelepiped = {
       val plane = xyPlane(z)
-      copy(point1 = plane intersection line1, point3 = plane intersection line3)
+      copy(point1 = plane intersection line1, _point3 = plane intersection line3)
     }
 
     def impulse(impulse: Vector3D): Parallelepiped = copy(direction = direction add impulse)
@@ -179,11 +183,22 @@ object PingPongAgent {
 
   final case class State3D(position: Rectangle, ball: Staged[Cylinder], rackets: Map[Racket, Staged[Parallelepiped]])
 
-  implicit final class Vector3DOps(val vector: Vector3D) extends AnyVal {
+  implicit final class Vector3DOps(val underlying: Vector3D) extends AnyVal {
+    def xy: Vector2D = new Vector2D(underlying.getX, underlying.getY)
+
+    def reflect(vector: Vector3D): Vector3D = {
+      val normalized = underlying.normalize()
+      normalized
+        .scalarMultiply(2 * (normalized dotProduct vector))
+        .subtract(vector)
+    }
+  }
+
+  implicit final class Vector2DOps(val vector: Vector2D) extends AnyVal {
 
     import vector._
 
-    def xy: Vector2D = new Vector2D(getX, getY)
+    def xyz0: Vector3D = new Vector3D(getX, getY, 0)
   }
 
   def intersection(state: State3D, z: Double): State2D = {
@@ -210,14 +225,92 @@ object PingPongAgent {
     else Some(touchPoints.min - Epsilon)
   }
 
-  // TODO more descriptiveness wouldn't hurt
-  def collision(
+  final case class Bar(point1: Vector3D, point2: Vector3D, direction: Vector3D) {
+    val plane = new Plane(point1, point2 subtract point1 crossProduct direction, 0d)
+  }
+
+  def intersection(
     rectangle: Rectangle,
-    parallelepiped: Set[Staged[Parallelepiped]],
-    cylinder: Cylinder,
-    z: Double
+    parallelepiped: Seq[Staged[Parallelepiped]],
+    cylinderStage: (Double, Cylinder)
   ): Option[(Double, Cylinder)] = {
-    None
+    val (key, cylinder) = cylinderStage
+    var bars = Seq.empty[Staged[Bar]]
+    bars ++= {
+      import rectangle._
+      val (x1, y1, x3, y3) = (
+        point1.getX, point1.getY,
+        point3.getX, point3.getY)
+      val direction = Vector3D.PLUS_K
+      Seq(
+        SortedMap(key -> Bar(new Vector3D(x1, y1, 0), new Vector3D(x3, y1, 0), direction)),
+        SortedMap(key -> Bar(new Vector3D(x1, y3, 0), new Vector3D(x3, y3, 0), direction)))
+    }
+
+    for {
+      s0 <- parallelepiped
+      s1 = s0.from(s0.to(key).lastKey)
+      b <- 0 to 3
+    } {
+      bars :+= s1.mapValues(parallelepipedBar(_, b))
+    }
+
+    val results = bars.flatMap(touch(_, cylinderStage))
+    if (results.isEmpty) {
+      None
+    } else {
+      val (touchPoint, figure) = results.minBy(_._1.getZ)
+      val touchXYPlane = xyPlane(touchPoint.getZ)
+      val cylinderPoint = touchXYPlane.intersection(cylinder.line)
+      val reflectionNormal = figure.fold(bar => {
+        import bar._
+        Vector3D.crossProduct(point1 subtract point2, direction)
+      }, line => {
+        cylinderPoint subtract touchXYPlane.intersection(line)
+      })
+      val result = cylinder.copy(direction = reflectionNormal reflect cylinder.direction.negate())
+      Some(touchPoint.getZ -> result)
+    }
+  }
+
+  def intersection(min: Double, max: Double, bar: Bar, cylinder: Cylinder): Option[(Vector3D, Option[Line])] = {
+    for {
+      center <- Option(bar.plane intersection cylinder.line)
+      if false
+    } yield {
+      ???
+    }
+  }
+
+  def touch(bar: Staged[Bar], cylinderStage: (Double, Cylinder)): Option[(Vector3D, Either[Bar, Line])] = {
+    val (cylinderStart, cylinder) = cylinderStage
+
+    val intersections =
+      for {
+        ((min, bar), max) <- bar.iterator.zip(bar.keysIterator.drop(1) ++ Iterator(Double.PositiveInfinity))
+        (point, lineOpt) <- intersection(min max cylinderStart, max, bar, cylinder)
+      } yield {
+        point -> lineOpt.toRight(bar)
+      }
+
+    intersections.toSeq.headOption
+  }
+
+  def parallelepipedBar(parallelepiped: Parallelepiped, bar: Int): Bar = {
+    import parallelepiped._
+    val (x1, y1, z, x3, y3) = (
+      point1.getX, point1.getY, point1.getZ,
+      point3.getX, point3.getY)
+
+    val points@(head +: tail) = Seq(
+      new Vector3D(x1, y1, z),
+      new Vector3D(x1, y3, z),
+      new Vector3D(x3, y3, z),
+      new Vector3D(x3, y1, z)
+    )
+
+    val (p1, p2) = points.zip(tail :+ head).apply(bar)
+    Bar(p1, p2, direction)
   }
 }
 
@@ -239,7 +332,7 @@ final class PingPongAgent {
 
   def at(when: Double): State2D = {
     val currentState = synchronized {
-      state = state.copy(ball = state.ball.calculateTo(when, state.position, state.rackets.values.toSet))
+      state = state.copy(ball = state.ball.calculateTo(when, state.position, state.rackets.values.toSeq))
       state
     }
     intersection(currentState, when)
